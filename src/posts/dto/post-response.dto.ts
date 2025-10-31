@@ -1,7 +1,10 @@
+// Generated content type - can be empty object or contain generatedPostText
+export type GeneratedContentDto = { generatedPostText?: string } | Record<string, never>;
+
 export class PostResponseDto {
   id: string;
   postContext: string;
-  generatedContent: string | null;
+  generatedContent: GeneratedContentDto | null;
   previewImage: string | null;
   options: {
     postType: string;
