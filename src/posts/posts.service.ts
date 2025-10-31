@@ -47,6 +47,25 @@ export class PostsService {
     return this.mapToPostResponse(data);
   }
 
+  async getAllPosts(): Promise<PostResponseDto[]> {
+    const supabase = this.supabaseService.getClient();
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      this.logger.error(`Error getting posts: ${error.message}`, error);
+      throw new HttpException(
+        `Failed to get posts: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return data.map((post) => this.mapToPostResponse(post));
+  }
+
   async getPost(postId: string): Promise<PostResponseDto> {
     const supabase = this.supabaseService.getClient();
 

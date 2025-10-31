@@ -20,6 +20,11 @@ export class PostsController {
     return this.postsService.generatePost(generatePostDto);
   }
 
+  @Get()
+  async getAllPosts(): Promise<PostResponseDto[]> {
+    return this.postsService.getAllPosts();
+  }
+
   @Get(':id')
   async getPost(@Param('id') id: string): Promise<PostResponseDto> {
     return this.postsService.getPost(id);
