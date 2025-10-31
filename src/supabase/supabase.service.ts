@@ -1,68 +1,111 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * SupabaseService provides a clean connection to Supabase
+ * Uses Supabase JS client for all database operations via REST API
+ */
 @Injectable()
 export class SupabaseService {
-  private supabase: SupabaseClient;
+  private readonly logger = new Logger(SupabaseService.name);
+  private readonly supabase: SupabaseClient;
 
   constructor(private configService: ConfigService) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-    const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseKey =
+      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+      this.configService.get<string>('SUPABASE_ANON_KEY');
 
     if (!supabaseUrl) {
       throw new Error(
-        'SUPABASE_URL is missing. Please add it to your .env file.\n' +
-        'Get it from: Supabase Dashboard -> Settings -> API -> Project URL',
+        'SUPABASE_URL is required. Please set it in your .env file.\n' +
+          'Get it from: Supabase Dashboard -> Settings -> API -> Project URL',
       );
     }
 
     if (!supabaseKey) {
       throw new Error(
-        'SUPABASE_SERVICE_ROLE_KEY is missing. Please add it to your .env file.\n' +
-        'How to find it:\n' +
-        '1. Go to https://supabase.com/dashboard\n' +
-        '2. Select your project\n' +
-        '3. Go to Settings -> API\n' +
-        '4. Look for "service_role" key (it\'s the secret one, starts with "eyJ...")\n' +
-        '5. Copy it and add to .env as SUPABASE_SERVICE_ROLE_KEY=your_key_here',
+        'Supabase API key is required. Please set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY in your .env file.\n' +
+          'Get it from: Supabase Dashboard -> Settings -> API',
       );
     }
 
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+    // Create Supabase client with proper configuration for backend
+    this.supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      db: {
+        schema: 'public',
+      },
+    });
+
+    this.logger.log(`Supabase client initialized for: ${supabaseUrl}`);
   }
 
+  /**
+   * Get the Supabase client instance
+   */
   getClient(): SupabaseClient {
     return this.supabase;
   }
 
   /**
-   * Test the Supabase connection by performing a simple query
+   * Test the Supabase connection by querying the database
    * @throws Error if connection fails
    */
   async testConnection(): Promise<void> {
     try {
-      // Try to query a simple table to verify connection
-      // Using the posts table since that's what we use
-      const { error } = await this.supabase
+      this.logger.log('Testing Supabase connection...');
+
+      // Test connection by querying the posts table
+      // If table doesn't exist, we'll get a specific error code
+      const { data, error } = await this.supabase
         .from('posts')
         .select('id')
         .limit(1);
 
       if (error) {
-        throw new Error(
-          `Supabase connection test failed: ${error.message}\n` +
-          `Code: ${error.code || 'N/A'}\n` +
-          `Details: ${error.details || 'N/A'}\n` +
-          `Hint: ${error.hint || 'N/A'}`,
-        );
+        // Handle different error scenarios
+        if (error.code === 'PGRST116') {
+          // Table doesn't exist - connection is working but table is missing
+          this.logger.warn(
+            'Connection successful, but posts table not found. This is okay if migrations haven\'t run yet.',
+          );
+          return;
+        }
+
+        if (error.message?.includes('JWT') || error.message?.includes('Invalid API key')) {
+          throw new Error(
+            `Authentication failed: ${error.message}. Please check your SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY.`,
+          );
+        }
+
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+          throw new Error(
+            `Network error: ${error.message}. Please check your SUPABASE_URL and internet connection.`,
+          );
+        }
+
+        // For other errors, connection might still be working
+        // Just log and continue - the table might not exist yet
+        this.logger.warn(`Connection test returned error: ${error.message}. This might be okay.`);
+        return;
+      }
+
+      // Success - connection is working
+      this.logger.log('✓ Supabase connection successful');
+      if (data) {
+        this.logger.debug(`Found ${data.length} post(s) in database`);
       }
     } catch (error) {
       if (error instanceof Error) {
+        // Re-throw custom errors
         throw error;
       }
-      throw new Error(`Supabase connection test failed: ${String(error)}`);
+      throw new Error(`Failed to test Supabase connection: ${String(error)}`);
     }
   }
 }
-

@@ -1,6 +1,6 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 import { SupabaseService } from './supabase/supabase.service';
 
 async function bootstrap() {
@@ -11,14 +11,14 @@ async function bootstrap() {
   try {
     const supabaseService = app.get(SupabaseService);
     await supabaseService.testConnection();
-    console.log('✓ Supabase connection successful');
   } catch (error) {
     console.error('✗ Supabase connection failed:');
     console.error(error instanceof Error ? error.message : String(error));
-    console.error('\nPlease check your Supabase configuration in .env file:');
-    console.error('- SUPABASE_URL');
-    console.error('- SUPABASE_SERVICE_ROLE_KEY');
-    console.error('\nServer will not start without a valid Supabase connection.');
+    console.error('\nPlease check your .env file configuration:');
+    console.error('- SUPABASE_URL (required)');
+    console.error('  Example: https://yxekdnzfenlilaicxywu.supabase.co');
+    console.error('- SUPABASE_SERVICE_ROLE_KEY (preferred) or SUPABASE_ANON_KEY (fallback)');
+    console.error('  Get from: Supabase Dashboard -> Settings -> API');
     process.exit(1);
   }
 
