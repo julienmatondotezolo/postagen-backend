@@ -18,10 +18,14 @@ export class PostsService {
   async createPost(createPostDto: CreatePostDto): Promise<PostResponseDto> {
     const supabase = this.supabaseService.getClient();
 
+    // Default preview image URL from Supabase storage
+    const DEFAULT_PREVIEW_IMAGE_URL =
+      'https://yxekdnzfenlilaicxywu.supabase.co/storage/v1/object/public/preview-images/default-previewImage.png';
+
     const insertData: any = {
       post_context: createPostDto.postContext,
       generated_content: createPostDto.generatedContent,
-      preview_image: createPostDto.previewImage,
+      preview_image: createPostDto.previewImage || DEFAULT_PREVIEW_IMAGE_URL,
       options: createPostDto.options,
     };
 
