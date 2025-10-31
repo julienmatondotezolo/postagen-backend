@@ -18,7 +18,9 @@ export class PostResponseDto {
 }
 
 export class GeneratePostResponseDto {
-  generatedContent: string;
+  generatedContent: {
+    generatedPostText: string;
+  };
   previewImage: string;
 }
 

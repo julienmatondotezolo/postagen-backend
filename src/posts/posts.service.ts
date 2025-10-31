@@ -182,21 +182,15 @@ export class PostsService {
         );
       }
 
-      // Normalize generatedContent: extract generatedPostText from object or use string directly
-      let normalizedGeneratedContent: string | null = null;
+      // Return generatedContent object as-is (with generatedPostText inside)
+      // Normalize to ensure it's always an object with generatedPostText
+      let normalizedGeneratedContent: { generatedPostText: string } = { generatedPostText: '' };
       
-      if (generatedContent !== null && generatedContent !== undefined) {
+      if (generatedContent) {
         if (typeof generatedContent === 'string') {
-          // Use string as-is (even if empty)
-          normalizedGeneratedContent = generatedContent;
-        } else if (typeof generatedContent === 'object') {
-          // Object: check for generatedPostText property
-          if ('generatedPostText' in generatedContent && typeof generatedContent.generatedPostText === 'string') {
-            normalizedGeneratedContent = generatedContent.generatedPostText;
-          } else {
-            // Empty object {} - convert to null
-            normalizedGeneratedContent = null;
-          }
+          normalizedGeneratedContent = { generatedPostText: generatedContent };
+        } else if (typeof generatedContent === 'object' && generatedContent !== null && 'generatedPostText' in generatedContent) {
+          normalizedGeneratedContent = generatedContent as { generatedPostText: string };
         }
       }
 
@@ -204,25 +198,26 @@ export class PostsService {
       const style = generationStyle || generatePostDto.options.actionButton || 'unknown';
       this.logger.log(`Successfully generated "${style}" style`);
 
-      // If currentPostId is provided, update the post with generated content
+      // If currentPostId is provided, update the post with previewImage only (don't save generatedContent)
       if (generatePostDto.currentPostId) {
         try {
           await this.updatePost(generatePostDto.currentPostId, {
-            generatedContent: normalizedGeneratedContent,
             previewImage,
+            // Don't save generatedContent - set it to null
+            generatedContent: null,
           });
         } catch (updateError) {
           this.logger.warn(
-            `Failed to update post ${generatePostDto.currentPostId} with generated content, but generation succeeded`,
+            `Failed to update post ${generatePostDto.currentPostId} with preview image, but generation succeeded`,
             updateError,
           );
           // Don't fail the request if update fails, return the generated content anyway
         }
       }
 
-      // Return normalized content (convert null to empty string for response DTO)
+      // Return generatedContent object with generatedPostText inside
       return {
-        generatedContent: normalizedGeneratedContent || '',
+        generatedContent: normalizedGeneratedContent,
         previewImage,
       };
     } catch (error) {
