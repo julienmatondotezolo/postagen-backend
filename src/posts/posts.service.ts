@@ -1,10 +1,10 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios, { AxiosError } from 'axios';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { GeneratePostDto } from './dto/generate-post.dto';
-import { PostResponseDto, GeneratePostResponseDto } from './dto/post-response.dto';
-import axios, { AxiosError } from 'axios';
+import { GeneratePostResponseDto, PostResponseDto } from './dto/post-response.dto';
 
 @Injectable()
 export class PostsService {
@@ -145,7 +145,10 @@ export class PostsService {
 
     if (!n8nWebhookUrl) {
       throw new HttpException(
-        'N8N_WEBHOOK_URL is not configured',
+        {
+          errorCode: 'CONFIGURATION_ERROR',
+          message: 'Failed to generate post: Generation service is not configured',
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -166,20 +169,42 @@ export class PostsService {
         },
       );
 
-      const { generatedContent, previewImage } = response.data;
+      const { generatedContent, previewImage, generationStyle } = response.data;
 
-      if (!generatedContent || !previewImage) {
+      // Validate previewImage is present
+      if (!previewImage) {
         throw new HttpException(
-          'Invalid response from n8n webhook: missing generatedContent or previewImage',
+          {
+            errorCode: 'INVALID_RESPONSE',
+            message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
+          },
           HttpStatus.BAD_GATEWAY,
         );
       }
+
+      // Normalize generatedContent: accept empty objects {} and convert to null
+      // If it's a string, use it as-is. If it's an object (including {}), convert to null
+      let normalizedGeneratedContent: string | null = null;
+      
+      if (generatedContent !== null && generatedContent !== undefined) {
+        if (typeof generatedContent === 'string') {
+          // Use string as-is (even if empty)
+          normalizedGeneratedContent = generatedContent;
+        } else if (typeof generatedContent === 'object') {
+          // Object (including {}) - convert to null
+          normalizedGeneratedContent = null;
+        }
+      }
+
+      // Log successful generation
+      const style = generationStyle || generatePostDto.options.actionButton || 'unknown';
+      this.logger.log(`Successfully generated "${style}" style`);
 
       // If currentPostId is provided, update the post with generated content
       if (generatePostDto.currentPostId) {
         try {
           await this.updatePost(generatePostDto.currentPostId, {
-            generatedContent,
+            generatedContent: normalizedGeneratedContent,
             previewImage,
           });
         } catch (updateError) {
@@ -191,13 +216,28 @@ export class PostsService {
         }
       }
 
+      // Return normalized content (convert null to empty string for response DTO)
       return {
-        generatedContent,
+        generatedContent: normalizedGeneratedContent || '',
         previewImage,
       };
     } catch (error) {
       if (error instanceof HttpException) {
-        throw error;
+        // If it's already an HttpException, wrap it with error code and message
+        const exceptionResponse = error.getResponse();
+        const errorMessage = typeof exceptionResponse === 'string' 
+          ? exceptionResponse 
+          : (exceptionResponse as any)?.message || error.message;
+
+        this.logger.error(errorMessage, error);
+        
+        throw new HttpException(
+          {
+            errorCode: 'GENERATION_FAILED',
+            message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
+          },
+          error.getStatus(),
+        );
       }
 
       const axiosError = error as AxiosError;
@@ -207,19 +247,28 @@ export class PostsService {
           axiosError,
         );
         throw new HttpException(
-          `n8n webhook error: ${axiosError.response.status} ${axiosError.response.statusText}`,
+          {
+            errorCode: 'N8N_WEBHOOK_ERROR',
+            message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
+          },
           HttpStatus.BAD_GATEWAY,
         );
       } else if (axiosError.request) {
         this.logger.error('No response received from n8n webhook', axiosError);
         throw new HttpException(
-          'No response received from n8n webhook',
+          {
+            errorCode: 'N8N_TIMEOUT',
+            message: 'Failed to generate post: No response received from generation service',
+          },
           HttpStatus.GATEWAY_TIMEOUT,
         );
       } else {
         this.logger.error(`Error calling n8n webhook: ${error.message}`, error);
         throw new HttpException(
-          `Failed to generate post: ${error.message}`,
+          {
+            errorCode: 'GENERATION_FAILED',
+            message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
+          },
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
