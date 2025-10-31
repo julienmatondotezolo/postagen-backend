@@ -182,8 +182,7 @@ export class PostsService {
         );
       }
 
-      // Normalize generatedContent: accept empty objects {} and convert to null
-      // If it's a string, use it as-is. If it's an object (including {}), convert to null
+      // Normalize generatedContent: extract generatedPostText from object or use string directly
       let normalizedGeneratedContent: string | null = null;
       
       if (generatedContent !== null && generatedContent !== undefined) {
@@ -191,8 +190,13 @@ export class PostsService {
           // Use string as-is (even if empty)
           normalizedGeneratedContent = generatedContent;
         } else if (typeof generatedContent === 'object') {
-          // Object (including {}) - convert to null
-          normalizedGeneratedContent = null;
+          // Object: check for generatedPostText property
+          if ('generatedPostText' in generatedContent && typeof generatedContent.generatedPostText === 'string') {
+            normalizedGeneratedContent = generatedContent.generatedPostText;
+          } else {
+            // Empty object {} - convert to null
+            normalizedGeneratedContent = null;
+          }
         }
       }
 
