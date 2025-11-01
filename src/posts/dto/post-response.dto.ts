@@ -1,5 +1,8 @@
-// Generated content type - can be empty object or contain generatedPostText
-export type GeneratedContentDto = { generatedPostText?: string } | Record<string, never>;
+// Generated content type - can be empty object or contain generatedPostText and/or generatedPostImage
+export type GeneratedContentDto = {
+  generatedPostText?: string;
+  generatedPostImage?: string;
+} | Record<string, never>;
 
 export class PostResponseDto {
   id: string;
@@ -22,7 +25,8 @@ export class PostResponseDto {
 
 export class GeneratePostResponseDto {
   generatedContent: {
-    generatedPostText: string;
+    generatedPostText?: string;
+    generatedPostImage?: string;
   };
   previewImage: string;
 }

@@ -182,15 +182,19 @@ export class PostsService {
         );
       }
 
-      // Return generatedContent object as-is (with generatedPostText inside)
-      // Normalize to ensure it's always an object with generatedPostText
-      let normalizedGeneratedContent: { generatedPostText: string } = { generatedPostText: '' };
+      // Return generatedContent object as-is (with generatedPostText and/or generatedPostImage)
+      // Normalize to ensure it's always an object
+      let normalizedGeneratedContent: { generatedPostText?: string; generatedPostImage?: string } = {};
       
       if (generatedContent) {
         if (typeof generatedContent === 'string') {
           normalizedGeneratedContent = { generatedPostText: generatedContent };
-        } else if (typeof generatedContent === 'object' && generatedContent !== null && 'generatedPostText' in generatedContent) {
-          normalizedGeneratedContent = generatedContent as { generatedPostText: string };
+        } else if (typeof generatedContent === 'object' && generatedContent !== null) {
+          // Extract both generatedPostText and generatedPostImage if they exist
+          normalizedGeneratedContent = {
+            generatedPostText: 'generatedPostText' in generatedContent ? generatedContent.generatedPostText : undefined,
+            generatedPostImage: 'generatedPostImage' in generatedContent ? generatedContent.generatedPostImage : undefined,
+          };
         }
       }
 
@@ -215,7 +219,7 @@ export class PostsService {
         }
       }
 
-      // Return generatedContent object with generatedPostText inside
+      // Return generatedContent object with generatedPostText and/or generatedPostImage
       return {
         generatedContent: normalizedGeneratedContent,
         previewImage,
