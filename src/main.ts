@@ -25,9 +25,22 @@ async function bootstrap() {
   // Set global prefix for all routes
   app.setGlobalPrefix('api');
 
-  // Enable CORS only for localhost:3002
+  // Enable CORS - supports multiple origins in production
+  const allowedOrigins = process.env.NEXT_PUBLIC_URL 
+    ? process.env.NEXT_PUBLIC_URL.split(',').map(origin => origin.trim())
+    : ["http://localhost:3002"];
+  
   app.enableCors({
-    origin: process.env.NEXT_PUBLIC_URL || "http://localhost:3002",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
