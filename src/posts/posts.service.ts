@@ -182,25 +182,22 @@ export class PostsService {
         );
       }
 
-      // Return generatedContent object as-is (with generatedPostText and/or generatedPostImage)
-      // Normalize to ensure it's always an object
-      let normalizedGeneratedContent: { generatedPostText?: string; generatedPostImage?: string } = {};
+      // Return generatedContent object as-is (with variants structure)
+      // The webhook sends variants in the format: { variant1: {...}, variant2: {...}, variant3: {...} }
+      let normalizedGeneratedContent: {
+        variant1?: { generatedPostText?: string; generatedPostImage?: string };
+        variant2?: { generatedPostText?: string; generatedPostImage?: string };
+        variant3?: { generatedPostText?: string; generatedPostImage?: string };
+      } = {};
       
-      if (generatedContent) {
-        if (typeof generatedContent === 'string') {
-          normalizedGeneratedContent = { generatedPostText: generatedContent };
-        } else if (typeof generatedContent === 'object' && generatedContent !== null) {
-          // Extract both generatedPostText and generatedPostImage if they exist
-          normalizedGeneratedContent = {
-            generatedPostText: 'generatedPostText' in generatedContent ? generatedContent.generatedPostText : undefined,
-            generatedPostImage: 'generatedPostImage' in generatedContent ? generatedContent.generatedPostImage : undefined,
-          };
-        }
+      if (generatedContent && typeof generatedContent === 'object' && generatedContent !== null) {
+        // Pass through the variants structure unchanged
+        normalizedGeneratedContent = generatedContent as any;
       }
 
       // Log successful generation
       const style = generationStyle || generatePostDto.options.actionButton || 'unknown';
-      this.logger.log(`Successfully generated "${style}" style`);
+      this.logger.log(`Successfully generated "${style}" style with variants`);
 
       // If currentPostId is provided, update the post with previewImage only (don't save generatedContent)
       if (generatePostDto.currentPostId) {
@@ -219,9 +216,10 @@ export class PostsService {
         }
       }
 
-      // Return generatedContent object with generatedPostText and/or generatedPostImage
+      // Return generatedContent object with variants structure unchanged
       return {
         generatedContent: normalizedGeneratedContent,
+        generationStyle,
         previewImage,
       };
     } catch (error) {

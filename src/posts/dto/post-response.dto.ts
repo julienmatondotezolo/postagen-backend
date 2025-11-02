@@ -25,9 +25,20 @@ export class PostResponseDto {
 
 export class GeneratePostResponseDto {
   generatedContent: {
-    generatedPostText?: string;
-    generatedPostImage?: string;
+    variant1?: {
+      generatedPostText?: string;
+      generatedPostImage?: string;
+    };
+    variant2?: {
+      generatedPostText?: string;
+      generatedPostImage?: string;
+    };
+    variant3?: {
+      generatedPostText?: string;
+      generatedPostImage?: string;
+    };
   };
+  generationStyle?: string;
   previewImage: string;
 }
 
