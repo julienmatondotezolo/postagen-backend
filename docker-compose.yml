@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postagen-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: postagen-backend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5001}:5001"
+    environment:
+      # Database
+      DATABASE_URL: ${DATABASE_URL}
+      
+      # Supabase
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      
+      # N8N Webhook
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      
+      # Server
+      PORT: 5001
+      NODE_ENV: production
+      
+      # Frontend URL for CORS
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-https://dev.intervolut.com}
+    volumes:
+      # Optional: Mount logs directory if you want persistent logs
+      - ./logs:/app/logs
+    networks:
+      - postagen-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5001/api/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+networks:
+  postagen-network:
+    driver: bridge
+

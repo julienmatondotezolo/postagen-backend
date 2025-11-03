@@ -1,6 +1,6 @@
-import { IsString, IsObject, IsOptional, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PostGenerationOptionsDto } from './create-post.dto';
+import { IsString, IsObject, IsOptional, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
+import { PostGenerationOptionsDto } from "./create-post.dto";
 
 export class GeneratePostDto {
   @IsString()
@@ -15,4 +15,3 @@ export class GeneratePostDto {
   @IsOptional()
   currentPostId: string | null;
 }
-

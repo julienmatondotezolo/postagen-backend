@@ -3,3 +3,6 @@ dist
 .cursorignore
 .env
 env.template
+.DS_Store
+logs
+*.log

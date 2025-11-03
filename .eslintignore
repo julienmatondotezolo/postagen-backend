@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+build
+*.log
+.env
+.env.local
+.eslintcache
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
