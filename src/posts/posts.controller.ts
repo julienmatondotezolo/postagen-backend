@@ -43,5 +43,10 @@ export class PostsController {
   async deletePost(@Param('id') id: string): Promise<void> {
     return this.postsService.deletePost(id);
   }
+
+  @Get(':id/variants')
+  async getPostVariants(@Param('id') id: string) {
+    return this.postsService.getPostVariants(id);
+  }
 }
 

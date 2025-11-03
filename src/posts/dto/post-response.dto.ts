@@ -4,6 +4,16 @@ export type GeneratedContentDto = {
   generatedPostImage?: string;
 } | Record<string, never>;
 
+export class PostVariantDto {
+  id: string;
+  variantNumber: number;
+  postId: string;
+  text: string | null;
+  image: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class PostResponseDto {
   id: string;
   postContext: string;
@@ -19,6 +29,7 @@ export class PostResponseDto {
     linkedInFormat: string;
     actionButton: string | null;
   };
+  variants?: PostVariantDto[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,5 +51,6 @@ export class GeneratePostResponseDto {
   };
   generationStyle?: string;
   previewImage: string;
+  actionButton: string | null;
 }
 
