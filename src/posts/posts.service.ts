@@ -1,22 +1,22 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import axios, { AxiosError } from 'axios';
-import { SupabaseService } from '../supabase/supabase.service';
-import { CreatePostDto } from './dto/create-post.dto';
-import { GeneratePostDto } from './dto/generate-post.dto';
-import { GeneratePostResponseDto, PostResponseDto } from './dto/post-response.dto';
+import { HttpException, HttpStatus, Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import axios, { AxiosError } from "axios";
+import { SupabaseService } from "../supabase/supabase.service";
+import { CreatePostDto } from "./dto/create-post.dto";
+import { GeneratePostDto } from "./dto/generate-post.dto";
+import { GeneratePostResponseDto, PostResponseDto } from "./dto/post-response.dto";
 
 @Injectable()
 export class PostsService {
   private readonly logger = new Logger(PostsService.name);
-  private readonly VARIANT_IMAGES_BUCKET = 'post-variants';
+  private readonly VARIANT_IMAGES_BUCKET = "post-variants";
   private readonly supabaseUrl: string;
 
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly configService: ConfigService,
   ) {
-    this.supabaseUrl = this.configService.get<string>('SUPABASE_URL') || '';
+    this.supabaseUrl = this.configService.get<string>("SUPABASE_URL") || "";
   }
 
   async createPost(createPostDto: CreatePostDto): Promise<PostResponseDto> {
@@ -24,7 +24,7 @@ export class PostsService {
 
     // Default preview image URL from Supabase storage
     const DEFAULT_PREVIEW_IMAGE_URL =
-      'https://yxekdnzfenlilaicxywu.supabase.co/storage/v1/object/public/preview-images/default-previewImage.png';
+      "https://yxekdnzfenlilaicxywu.supabase.co/storage/v1/object/public/preview-images/default-previewImage.png";
 
     const insertData: any = {
       post_context: createPostDto.postContext,
@@ -38,18 +38,11 @@ export class PostsService {
       insertData.id = createPostDto.id;
     }
 
-    const { data, error } = await supabase
-      .from('posts')
-      .insert(insertData)
-      .select()
-      .single();
+    const { data, error } = await supabase.from("posts").insert(insertData).select().single();
 
     if (error) {
       this.logger.error(`Error creating post: ${error.message}`, error);
-      throw new HttpException(
-        `Failed to create post: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(`Failed to create post: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return this.mapToPostResponse(data);
@@ -58,17 +51,11 @@ export class PostsService {
   async getAllPosts(): Promise<PostResponseDto[]> {
     const supabase = this.supabaseService.getClient();
 
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
 
     if (error) {
       this.logger.error(`Error getting posts: ${error.message}`, error);
-      throw new HttpException(
-        `Failed to get posts: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(`Failed to get posts: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return data.map((post) => this.mapToPostResponse(post));
@@ -79,8 +66,9 @@ export class PostsService {
 
     // Fetch post with variants in a single query
     const { data, error } = await supabase
-      .from('posts')
-      .select(`
+      .from("posts")
+      .select(
+        `
         *,
         post_variants (
           id,
@@ -91,20 +79,18 @@ export class PostsService {
           created_at,
           updated_at
         )
-      `)
-      .eq('id', postId)
+      `,
+      )
+      .eq("id", postId)
       .single();
 
     if (error) {
       this.logger.error(`Error getting post: ${error.message}`, error);
-      throw new HttpException(
-        `Failed to get post: ${error.message}`,
-        HttpStatus.NOT_FOUND,
-      );
+      throw new HttpException(`Failed to get post: ${error.message}`, HttpStatus.NOT_FOUND);
     }
 
     if (!data) {
-      throw new HttpException('Post not found', HttpStatus.NOT_FOUND);
+      throw new HttpException("Post not found", HttpStatus.NOT_FOUND);
     }
 
     return this.mapToPostResponse(data);
@@ -121,19 +107,11 @@ export class PostsService {
 
     updateData.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from('posts')
-      .update(updateData)
-      .eq('id', postId)
-      .select()
-      .single();
+    const { data, error } = await supabase.from("posts").update(updateData).eq("id", postId).select().single();
 
     if (error) {
       this.logger.error(`Error updating post: ${error.message}`, error);
-      throw new HttpException(
-        `Failed to update post: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(`Failed to update post: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     return this.mapToPostResponse(data);
@@ -144,9 +122,9 @@ export class PostsService {
 
     // First, get all variants with their images before deleting
     const { data: variants, error: fetchError } = await supabase
-      .from('post_variants')
-      .select('id, generated_post_image')
-      .eq('post_id', postId);
+      .from("post_variants")
+      .select("id, generated_post_image")
+      .eq("post_id", postId);
 
     if (fetchError) {
       this.logger.warn(`Error fetching variants for post ${postId}: ${fetchError.message}`, fetchError);
@@ -183,10 +161,7 @@ export class PostsService {
     }
 
     // Delete all variants for this post
-    const { error: variantsError } = await supabase
-      .from('post_variants')
-      .delete()
-      .eq('post_id', postId);
+    const { error: variantsError } = await supabase.from("post_variants").delete().eq("post_id", postId);
 
     if (variantsError) {
       this.logger.warn(`Error deleting variants for post ${postId}: ${variantsError.message}`, variantsError);
@@ -196,17 +171,11 @@ export class PostsService {
     }
 
     // Then delete the post itself
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('id', postId);
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
 
     if (error) {
       this.logger.error(`Error deleting post: ${error.message}`, error);
-      throw new HttpException(
-        `Failed to delete post: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(`Failed to delete post: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -214,17 +183,14 @@ export class PostsService {
     const supabase = this.supabaseService.getClient();
 
     const { data, error } = await supabase
-      .from('post_variants')
-      .select('*')
-      .eq('post_id', postId)
-      .order('variant_number', { ascending: true });
+      .from("post_variants")
+      .select("*")
+      .eq("post_id", postId)
+      .order("variant_number", { ascending: true });
 
     if (error) {
       this.logger.error(`Error getting variants: ${error.message}`, error);
-      throw new HttpException(
-        `Failed to get variants: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(`Failed to get variants: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     // Return empty array if no variants found (normal for older posts)
@@ -244,19 +210,19 @@ export class PostsService {
   }
 
   async generatePost(generatePostDto: GeneratePostDto): Promise<GeneratePostResponseDto> {
-    const n8nWebhookUrl = this.configService.get<string>('N8N_WEBHOOK_URL');
+    const n8nWebhookUrl = this.configService.get<string>("N8N_WEBHOOK_URL");
 
     if (!n8nWebhookUrl) {
       throw new HttpException(
         {
-          errorCode: 'CONFIGURATION_ERROR',
-          message: 'Failed to generate post: Generation service is not configured',
+          errorCode: "CONFIGURATION_ERROR",
+          message: "Failed to generate post: Generation service is not configured",
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
-    this.logger.log(`Calling n8n webhook for post generation: ${generatePostDto.currentPostId || 'new post'}`);
+    this.logger.log(`Calling n8n webhook for post generation: ${generatePostDto.currentPostId || "new post"}`);
 
     try {
       // Call n8n webhook
@@ -278,7 +244,7 @@ export class PostsService {
       if (!previewImage) {
         throw new HttpException(
           {
-            errorCode: 'INVALID_RESPONSE',
+            errorCode: "INVALID_RESPONSE",
             message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
           },
           HttpStatus.BAD_GATEWAY,
@@ -292,14 +258,14 @@ export class PostsService {
         variant2?: { generatedPostText?: string; generatedPostImage?: string };
         variant3?: { generatedPostText?: string; generatedPostImage?: string };
       } = {};
-      
-      if (generatedContent && typeof generatedContent === 'object' && generatedContent !== null) {
+
+      if (generatedContent && typeof generatedContent === "object" && generatedContent !== null) {
         // Pass through the variants structure unchanged
         normalizedGeneratedContent = generatedContent as any;
       }
 
       // Log successful generation
-      const style = generationStyle || generatePostDto.options.actionButton || 'unknown';
+      const style = generationStyle || generatePostDto.options.actionButton || "unknown";
       this.logger.log(`Successfully generated "${style}" style with variants`);
 
       // If currentPostId is provided, update the post with previewImage only (don't save generatedContent)
@@ -331,15 +297,14 @@ export class PostsService {
 
           // Get the next variant number for this post
           const { data: existingVariants } = await supabase
-            .from('post_variants')
-            .select('variant_number')
-            .eq('post_id', generatePostDto.currentPostId)
-            .order('variant_number', { ascending: false })
+            .from("post_variants")
+            .select("variant_number")
+            .eq("post_id", generatePostDto.currentPostId)
+            .order("variant_number", { ascending: false })
             .limit(1);
 
-          const nextVariantNumber = existingVariants && existingVariants.length > 0
-            ? existingVariants[0].variant_number + 1
-            : 1;
+          const nextVariantNumber =
+            existingVariants && existingVariants.length > 0 ? existingVariants[0].variant_number + 1 : 1;
 
           // Process variants: download and upload images to Supabase storage
           const processedVariants = await Promise.all(
@@ -371,9 +336,7 @@ export class PostsService {
                       // Keep original URL if upload fails
                     }
                   } else {
-                    this.logger.log(
-                      `Variant ${nextVariantNumber + index} image already in bucket, skipping upload`,
-                    );
+                    this.logger.log(`Variant ${nextVariantNumber + index} image already in bucket, skipping upload`);
                   }
                 }
 
@@ -387,9 +350,7 @@ export class PostsService {
           );
 
           if (processedVariants.length > 0) {
-            const { error: insertError } = await supabase
-              .from('post_variants')
-              .insert(processedVariants);
+            const { error: insertError } = await supabase.from("post_variants").insert(processedVariants);
 
             if (insertError) {
               this.logger.warn(
@@ -428,15 +389,16 @@ export class PostsService {
       if (error instanceof HttpException) {
         // If it's already an HttpException, wrap it with error code and message
         const exceptionResponse = error.getResponse();
-        const errorMessage = typeof exceptionResponse === 'string' 
-          ? exceptionResponse 
-          : (exceptionResponse as any)?.message || error.message;
+        const errorMessage =
+          typeof exceptionResponse === "string"
+            ? exceptionResponse
+            : (exceptionResponse as any)?.message || error.message;
 
         this.logger.error(errorMessage, error);
-        
+
         throw new HttpException(
           {
-            errorCode: 'GENERATION_FAILED',
+            errorCode: "GENERATION_FAILED",
             message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
           },
           error.getStatus(),
@@ -451,17 +413,17 @@ export class PostsService {
         );
         throw new HttpException(
           {
-            errorCode: 'N8N_WEBHOOK_ERROR',
+            errorCode: "N8N_WEBHOOK_ERROR",
             message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
           },
           HttpStatus.BAD_GATEWAY,
         );
       } else if (axiosError.request) {
-        this.logger.error('No response received from n8n webhook', axiosError);
+        this.logger.error("No response received from n8n webhook", axiosError);
         throw new HttpException(
           {
-            errorCode: 'N8N_TIMEOUT',
-            message: 'Failed to generate post: No response received from generation service',
+            errorCode: "N8N_TIMEOUT",
+            message: "Failed to generate post: No response received from generation service",
           },
           HttpStatus.GATEWAY_TIMEOUT,
         );
@@ -469,7 +431,7 @@ export class PostsService {
         this.logger.error(`Error calling n8n webhook: ${error.message}`, error);
         throw new HttpException(
           {
-            errorCode: 'GENERATION_FAILED',
+            errorCode: "GENERATION_FAILED",
             message: `Failed to generate style with type: ${generatePostDto.options.actionButton}`,
           },
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -485,36 +447,34 @@ export class PostsService {
    * @param variantNumber The variant number
    * @returns The public URL of the uploaded image
    */
-  private async uploadVariantImageToStorage(
-    imageUrl: string,
-    postId: string,
-    variantNumber: number,
-  ): Promise<string> {
+  private async uploadVariantImageToStorage(imageUrl: string, postId: string, variantNumber: number): Promise<string> {
     const supabase = this.supabaseService.getClient();
 
     try {
       // Download the image
       this.logger.log(`Downloading image from ${imageUrl}`);
       const imageResponse = await axios.get(imageUrl, {
-        responseType: 'arraybuffer',
+        responseType: "arraybuffer",
         timeout: 30000, // 30 seconds timeout
       });
 
       // Determine file extension from URL or content type
-      const contentType = imageResponse.headers['content-type'] || 'image/png';
-      const extension = contentType.includes('jpeg') || contentType.includes('jpg')
-        ? 'jpg'
-        : contentType.includes('png')
-          ? 'png'
-          : contentType.includes('webp')
-            ? 'webp'
-            : 'png'; // default to png
+      const contentType = imageResponse.headers["content-type"] || "image/png";
+      const extension =
+        contentType.includes("jpeg") || contentType.includes("jpg")
+          ? "jpg"
+          : contentType.includes("png")
+            ? "png"
+            : contentType.includes("webp")
+              ? "webp"
+              : "png"; // default to png
 
       // Generate a unique filename
       const timestamp = Date.now();
       const filename = `${postId}/${variantNumber}-${timestamp}.${extension}`;
 
       // Upload to Supabase storage
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(this.VARIANT_IMAGES_BUCKET)
         .upload(filename, imageResponse.data, {
@@ -527,12 +487,10 @@ export class PostsService {
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(this.VARIANT_IMAGES_BUCKET)
-        .getPublicUrl(filename);
+      const { data: urlData } = supabase.storage.from(this.VARIANT_IMAGES_BUCKET).getPublicUrl(filename);
 
       if (!urlData?.publicUrl) {
-        throw new Error('Failed to get public URL for uploaded image');
+        throw new Error("Failed to get public URL for uploaded image");
       }
 
       this.logger.log(`Successfully uploaded variant image to ${urlData.publicUrl}`);
@@ -545,17 +503,18 @@ export class PostsService {
 
   private mapToPostResponse(data: any): PostResponseDto {
     // Map variants if they exist
-    const variants = data.post_variants && Array.isArray(data.post_variants) && data.post_variants.length > 0
-      ? data.post_variants.map((variant: any) => ({
-          id: variant.id,
-          variantNumber: variant.variant_number,
-          postId: variant.post_id,
-          text: variant.generated_post_text,
-          image: variant.generated_post_image,
-          createdAt: new Date(variant.created_at),
-          updatedAt: new Date(variant.updated_at),
-        }))
-      : undefined;
+    const variants =
+      data.post_variants && Array.isArray(data.post_variants) && data.post_variants.length > 0
+        ? data.post_variants.map((variant: any) => ({
+            id: variant.id,
+            variantNumber: variant.variant_number,
+            postId: variant.post_id,
+            text: variant.generated_post_text,
+            image: variant.generated_post_image,
+            createdAt: new Date(variant.created_at),
+            updatedAt: new Date(variant.updated_at),
+          }))
+        : undefined;
 
     return {
       id: data.id,
@@ -569,4 +528,3 @@ export class PostsService {
     };
   }
 }
-

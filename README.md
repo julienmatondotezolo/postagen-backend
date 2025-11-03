@@ -227,6 +227,32 @@ The `posts` table should have the following structure:
 - `created_at` (timestamptz)
 - `updated_at` (timestamptz)
 
+## Code Quality
+
+This project uses ESLint and Prettier for code quality and formatting.
+
+### Running Linters
+
+```bash
+# Check for linting errors (no auto-fix)
+npm run lint:check
+
+# Fix linting errors automatically
+npm run lint
+
+# Format code with Prettier
+npm run format
+
+# Check formatting without fixing
+npm run format:check
+```
+
+### Configuration
+
+- **ESLint**: Configured in `.eslintrc.js` with TypeScript and Prettier integration
+- **Prettier**: Configured in `.prettierrc` with NestJS-friendly settings
+- **Ignored files**: See `.eslintignore` and `.prettierignore`
+
 ## Project Structure
 
 ```

@@ -1,11 +1,13 @@
-import { IsString, IsOptional, IsObject, ValidateNested, ValidateIf } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsObject, ValidateNested, ValidateIf } from "class-validator";
+import { Type } from "class-transformer";
 
 // Generated content type - can be empty object or contain generatedPostText and/or generatedPostImage
-export type GeneratedContentDto = {
-  generatedPostText?: string;
-  generatedPostImage?: string;
-} | Record<string, never>;
+export type GeneratedContentDto =
+  | {
+      generatedPostText?: string;
+      generatedPostImage?: string;
+    }
+  | Record<string, never>;
 
 export class PostGenerationOptionsDto {
   @IsString()
@@ -56,4 +58,3 @@ export class CreatePostDto {
   @Type(() => PostGenerationOptionsDto)
   options: PostGenerationOptionsDto;
 }
-
